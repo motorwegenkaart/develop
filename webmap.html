@@ -20,7 +20,9 @@
     <script src="https://js.arcgis.com/4.19/"></script>
 
     <script>
-      require(["esri/views/MapView", "esri/WebMap"], function(MapView, WebMap) {
+      require(["esri/views/MapView", "esri/WebMap", 
+      "esri/PopupTemplate",
+      "esri/popup/content/CustomContent",], function(MapView, WebMap, PopupTemplate, CustomContent) {
         /************************************************************
          * Creates a new WebMap instance. A WebMap must reference
          * a PortalItem ID that represents a WebMap saved to
@@ -35,7 +37,7 @@
             id: "8d945ec6379d4a409ef95ce9bc4b4cab"
           }
         });
-
+        
         /************************************************************
          * Set the WebMap instance to the map property in a MapView.
          ************************************************************/
@@ -43,6 +45,34 @@
           map: webmap,
           container: "viewDiv"
         });
+        
+        var customContent = new CustomContent({
+          outFields: ["*"],
+          creator: function (event) {
+            console.log(event);
+            var meanRating = event.graphic.attributes["rating_mean"]/5 * 100;
+            
+            if (!event.graphic.attributes["join_count"]) {
+                var countString = "Er zijn nog geen beoordelingen";
+                var display = "none";
+            }
+            else {
+                var countString = "Op basis van " + event.graphic.attributes["join_count"] + " beoordelingen";
+                var display = "block";
+            }
+            var result = '<div style="display:' + display + ';background: ' + "url('https://moa9y9gihhutmkmz.maps.arcgis.com/sharing/rest/content/items/8bb922a0d67046cd8be9e6dc11473656/data') repeat-x;font-size: 0;height: 40px;line-height: 0;overflow: hidden;text-indent: -999em;width: 175px;margin: 0 auto;" + '"><span style="background:' + "url('https://moa9y9gihhutmkmz.maps.arcgis.com/sharing/rest/content/items/8bb922a0d67046cd8be9e6dc11473656/data') repeat-x;background-position: 0 100%;float: left;height: 40px;display:block;width:" + meanRating + '%"><span style="text-indent: -999em;"></span></span</div><br /><div style="text-align: center;"><i>'+ countString +'</i></div>'
+            console.log(result);
+            return result;
+          }
+        });
+        view.when(function() {
+          var layer = webmap.layers.items[1];
+          console.log(layer);
+          layer.popupTemplate = new PopupTemplate({
+            outFields: ["*"],
+            content: [customContent]
+          });
+        })
       });
     </script>
   </head>
