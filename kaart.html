@@ -1,0 +1,686 @@
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no">
+  <link rel="stylesheet" href="css/star-rating.css">
+  <title>Motorwegenkaart.nl</title>
+  <style>
+    html,
+    body,
+    #viewDiv {
+      padding: 0;
+      margin: 0;
+      height: 100%;
+      width: 100%;
+    }
+
+    #panel {
+      width: 350px;
+      height: 500px;
+
+    }
+
+    /* #rendererpanel {
+      display: none;
+    }
+
+    #rendererPanel select {
+      width: 215px;
+    } */
+
+    #filterpanel {
+      padding-top: 4px;
+      display: none;
+    }
+
+    #panelRateRadios {
+      display: none;
+    }
+
+    #panelRateButton {
+      display: none;
+    }
+
+    /* HIDE RADIO */
+    /* [type=radio] { 
+      position: absolute;
+      opacity: 0;
+      width: 0;
+      height: 0;
+    } */
+
+    /* IMAGE STYLES */
+    /* [type=radio] + img {
+      cursor: pointer;
+    } */
+
+    /* CHECKED STYLES */
+    /* [type=radio]:checked + img {
+      outline: 2px solid #f00;
+    } */
+  </style>
+  <!-- calcite web from: https://esri.github.io/calcite-web/ -->
+  <link rel="stylesheet"
+    href="https://s3-us-west-1.amazonaws.com/patterns.esri.com/files/calcite-web/1.2.5/css/calcite-web.min.css">
+
+    <link rel="stylesheet" href="https://js.arcgis.com/4.19/esri/themes/light/main.css">
+    <script src="https://js.arcgis.com/4.19/"></script>
+
+  <script>
+
+    require([
+      "esri/WebMap", "esri/views/MapView", "esri/widgets/Expand", "esri/layers/FeatureLayer", "esri/Graphic", "esri/request", "esri/widgets/Legend",
+      "esri/layers/GraphicsLayer", "esri/widgets/Sketch/SketchViewModel", "esri/views/layers/support/FeatureFilter", "esri/geometry/geometryEngine", "esri/Graphic", "esri/tasks/support/Query", "esri/config",
+      "dojo/on",
+      "https://s3-us-west-1.amazonaws.com/patterns.esri.com/files/calcite-web/1.2.5/js/calcite-web.min.js"
+    ], function (WebMap, MapView, Expand, FeatureLayer, Graphic, esriRequest, Legend,
+      GraphicsLayer, SketchViewModel, FeatureFilter, geometryEngine, Graphic, Query,  esriConfig,
+      on,
+      calcite) {
+      calcite.init();
+      var fieldName = null;
+      var top10FieldValues = []
+      var fLayer = null;
+      var flView = null;
+      var serviceFl = null;
+      var initialFilter = {where: "1=0"};
+      var selectedFeatures = [];
+      var selectedRating = 0;
+      var selectedBike = null;
+
+      
+
+      // var map = new Map({
+      //   basemap: "topo-vector"
+      // });
+
+      esriConfig.apiKey = "AAPK0556caf3cf0041aaaf03aecec416fe83yMXkBaDZeu-9XZvlwwoMZvt1ZBXNdTyMVGRYYeR9ELjXt_3bK7-c-DkT89u2an9T";
+
+      const map = new WebMap({
+        portalItem: {
+          id: "713e07b6b38a4de290e4fb17edea8681"
+        }
+      });
+      
+
+      var view = new MapView({
+        container: "viewDiv",
+        map: map
+      });
+
+      var legend = new Legend({
+        view: view,
+
+      });
+
+
+      view.ui.add(legend, "bottom-right");
+
+      var panel = document.getElementById("panel");
+      var panelExpand = new Expand({ content: panel, view: view, expanded: true });
+      // var fieldSelect = document.getElementById("fieldSelect");
+      var rampSelect = document.getElementById("rampSelect");
+      var btnSelect = document.getElementById("btnSelect");
+      var btnClear = document.getElementById("btnClearSelect");
+      var btnRate = document.getElementById("btnRate");
+      // var panelFeatureCount = document.getElementById("panelFeatureCount");
+      var panelRateRadios = document.getElementById("panelRateRadios");
+      var panelRateButton = document.getElementById("panelRateButton");
+      var panelRateMessage = document.getElementById("panelRateMessage");
+
+      var starhalf = document.getElementById("starhalf");
+      var star1 = document.getElementById("star1");
+      var star1half = document.getElementById("star1half");
+      var star2 = document.getElementById("star2");
+      var star2half = document.getElementById("star2half");
+      var star3 = document.getElementById("star3");
+      var star3half = document.getElementById("star3half");
+      var star4 = document.getElementById("star4");
+      var star4half = document.getElementById("star4half");
+      var star5 = document.getElementById("star5");
+
+      on(starhalf, "change", (value) => {setSelectedRating();});
+      on(star1, "change", (value) => {setSelectedRating();});
+      on(star1half, "change", (value) => {setSelectedRating();});
+      on(star2, "change", (value) => {setSelectedRating();});
+      on(star2half, "change", (value) => {setSelectedRating();});
+      on(star3, "change", (value) => {setSelectedRating();});
+      on(star3half, "change", (value) => {setSelectedRating();});
+      on(star4, "change", (value) => {setSelectedRating();});
+      on(star4half, "change", (value) => {setSelectedRating();});
+      on(star5, "change", (value) => {setSelectedRating();});
+
+      var selectBikeImages = document.getElementsByName("selectBikeImages");
+
+      var imgAdventure = document.getElementById("Adventure");
+      var imgClassic = document.getElementById("Classic");
+      on(imgAdventure, "click", (value) => {
+        setSelectedBike(imgAdventure);
+      });
+      on(imgClassic, "click", (value) => {
+        setSelectedBike(imgClassic);
+      });
+
+      function setSelectedBike(imgObj) {
+        // var select = true;
+        // if(imgObj.id == selectedBike) {
+        //   select = false
+        // }
+
+        for (var i = 0; i < selectBikeImages.length; i++) {
+          console.log(selectBikeImages[i].src);
+          selectBikeImages[i].style = "background:rgb(255,255,255)";
+        }
+
+        if(imgObj.id == selectedBike) {
+          selectedBike = null;
+        } else {
+          imgObj.style = "background:rgb(255,216,0,0.5)";
+          selectedBike = imgObj.id;
+        }
+      }
+      
+      view.ui.add(panelExpand, "top-right")
+
+      ratingFl = new FeatureLayer("https://services3.arcgis.com/4RP58XtUrPEDt7Tl/arcgis/rest/services/Ratings/FeatureServer/0");
+
+
+      //Data and Visualization
+      // setColorRamps();
+      // var btnGo = document.getElementById("btnGo");
+
+      on(btnRate, "click", () => {
+        hideRateButton();
+        addGraphics = [];
+
+        selectedFeatures.forEach((feature) => {
+          // let rating = Math.round((Math.random() * 5) * 2) / 2;
+          // console.log(rating);
+          // console.log(feature.attributes.OBJECTID);
+          
+          let att = {
+            weg_id: "0",
+            WVK_ID: feature.attributes.WVK_ID,
+            rating: selectedRating
+          };
+
+          let graphic = new Graphic({
+            attributes: att
+          });
+
+          addGraphics.push(graphic);
+        });
+
+        let edits = {
+          addFeatures: addGraphics
+        };
+
+        // promise.when((result) => {
+        //   console.log("Result adding features: ", result);
+        // });
+
+        ratingFl.applyEdits(edits).then(function(results) {
+          console.log("edits added: ", results);
+          panelRateMessage.innerHTML = "Thanks for your rating!";
+          stopSelection();
+        });
+      });
+
+      // on(btnGo, "click", () => {
+      view.when(() => {
+        console.log("Let's go");
+        //monumenten
+        // var url = "https://services9.arcgis.com/kfCU77AsgNn9o1Ff/arcgis/rest/services/Test_motorwegen/FeatureServer/0";
+        // var url = "https://services.arcgis.com/nSZVuSZjHpEZZbRo/arcgis/rest/services/NWB_Wegvakken/FeatureServer/0";
+        // var url = "https://services6.arcgis.com/PJ2O5BaHcA2bnIXr/ArcGIS/rest/services/wegvakken_heerenveen/FeatureServer/0";
+        // var url = "https://services3.arcgis.com/4RP58XtUrPEDt7Tl/arcgis/rest/services/testwegen/FeatureServer/0/";
+        var url = "https://services3.arcgis.com/4RP58XtUrPEDt7Tl/arcgis/rest/services/Wegen/FeatureServer/0"; // Friesland
+        loaderStatus(true, "De kaart wordt geladen...");
+
+        serviceFl = new FeatureLayer(url);
+
+        console.log("map", map);
+        console.log("view", view);
+        getAllDataFromFeatureLayer(serviceFl, view.spatialReference.wkid).then((result) => {
+
+          console.log("got result", result);
+          // loaderStatus(true, "Received features: creating layer");
+
+          console.log("fl", serviceFl);
+          fLayer = new FeatureLayer({
+
+            // create an instance of esri/layers/support/Field for each field object
+            fields: serviceFl.fields,
+            outFields: ["*"],
+            objectIdField: serviceFl.objectIdField, // inferred from fields array if not specified
+            geometryType: serviceFl.geometryType, // geometryType and spatialReference are inferred from the first feature
+            //   in the source array if they are not specified.
+            spatialReference: view.spatialReference,
+            source: [result[0]],  //  an array of graphics with geometry and attributes
+            // popupTemplate and symbol are not required in each feature
+            // since those are handled with the popupTemplate and
+            // renderer properties of the layer
+            popupTemplate: serviceFl.popupTemplate,
+            legendEnabled: false,
+            // a default simple renderer will be applied if not set.
+            renderer: serviceFl.renderer  // UniqueValueRenderer based on `type` attribute
+          });
+          map.add(fLayer);
+
+          view.whenLayerView(fLayer).then(function (layerView) {
+            flView = layerView;
+            flView.filter = initialFilter;
+            
+          });
+
+          // loaderStatus(true, "Adding features to layer");
+          fLayer.applyEdits({ addFeatures: result }).then(() => {
+            loaderStatus(false, "")
+            displayPanels(true);
+          });
+          serviceFl.fields.forEach((fld) => {
+            console.log(fld);
+            var opt = document.createElement('option');
+            opt.value = fld.name;
+            opt.innerHTML = `${fld.name} (${fld.type})`;
+            // fieldSelect.appendChild(opt);
+
+          });
+
+
+        });
+
+      });
+
+      // on(fieldSelect, "change", (evt) => {
+      //   console.log("fieldSelect:change", fieldSelect, evt);
+      //   fieldName = fieldSelect.selectedOptions[0].value;
+      //   console.log("fieldName: ", fieldName);
+      //   console.log("lview: ", flView);
+
+
+      //   var query = serviceFl.createQuery();
+      //   query.groupByFieldsForStatistics = fieldName;
+      //   query.orderByFields = ["field_count DESC"];
+      //   query.outStatistics = [{
+      //     onStatisticField: fieldName,
+      //     outStatisticFieldName: "field_count",
+      //     statisticType: "count"
+      //   }];
+      //   serviceFl.queryFeatures(query).then(function (response) {
+      //     console.log("response", response)
+      //     var nrofFieldValues = response.features.length;
+      //     if (nrofFieldValues > 10) {
+      //       nrofFieldValues = 10;
+      //     }
+      //     if (nrofFieldValues > 0) {
+      //       top10FieldValues = [];
+      //       for (var i = 0; i < nrofFieldValues; i++) {
+      //         var fieldValue = response.features[i].attributes[fieldName];
+      //         console.log("Adding: ", fieldValue);
+
+      //         top10FieldValues.push(fieldValue);
+
+      //       }
+      //       updateRenderer();
+      //     }
+      //   });
+
+
+      // });
+      // on(rampSelect, "change", (evt) => {
+      //   updateRenderer();
+      // });
+
+      // function updateRenderer() {
+      //   console.log("value", rampSelect.selectedOptions[0].value);
+      //   if (rampSelect.selectedOptions[0].value != "" && fieldSelect.selectedOptions[0].value != "") {
+      //     var uniqueValues = []
+      //     var colors = rampSelect.selectedOptions[0].value.split(",");
+      //     for (var i = 0; i < top10FieldValues.length; i++) {
+      //       var fieldValue = top10FieldValues[i];
+      //       var colorHex = colors[i];
+      //       uniqueValues.push({
+      //         value: fieldValue,
+      //         symbol: {
+      //           type: "simple-marker",
+      //           outline: { width: 1 },
+      //           color: colorHex
+      //         }
+      //       });
+      //     }
+
+      //     var renderer = {
+      //       type: "unique-value",  // autocasts as new UniqueValueRenderer()
+      //       field: fieldName,
+      //       defaultSymbol: {
+      //         type: "simple-marker",
+      //         outline: { width: 1 },
+      //         color: "#ECECEC"
+      //       },  // autocasts as new SimpleFillSymbol()
+      //       uniqueValueInfos: uniqueValues,
+
+      //     };
+      //     fLayer.renderer = renderer;
+      //   }
+      // }
+
+      // function setColorRamps() {
+      //   esriRequest("colorramps.json").then((response) => {
+      //     console.log("color ramps:", response);
+
+
+      //     response.data.forEach((ramp) => {
+      //       console.log(ramp);
+      //       var opt = document.createElement('option');
+      //       opt.value = ramp.colors;
+      //       opt.innerHTML = ramp.name;
+      //       rampSelect.appendChild(opt);
+      //     });
+      //   });
+
+      // }
+      function loaderStatus(status, msg) {
+        var loader = document.getElementById("loader");
+        document.getElementById("loaderText").innerHTML = msg;
+        if (status) {
+          loader.classList.add("is-active");
+
+        }
+        else {
+          loader.classList.remove("is-active");
+        }
+
+      }
+      function getAllDataFromFeatureLayer(fLayer, outSrWkid) {
+        return new Promise(resolve => {
+          // First, get the count of all features...
+          fLayer.queryFeatureCount().then((resultCount) => {
+            features = []
+            // loaderStatus(true, `featurecount ${resultCount}`);
+            nrOfRequests = Math.ceil(resultCount / 1000)
+            for (i = 0; i < nrOfRequests; i++) {
+              j = 0
+
+              var query = { num: 1000, start: i * 1000, returnGeometry: true, outSpatialReference: { wkid: outSrWkid }, outFields: "*" }
+              fLayer.queryFeatures(query).then((resultFeatures) => {
+
+                features = features.concat(resultFeatures.features)
+                // loaderStatus(true, `got features ${features.length} from ${resultCount}`)
+                j = j + 1
+                if (j === nrOfRequests) {
+                  var newgraphics = features.map(f => new Graphic({ attributes: f.attributes, geometry: f.geometry }));
+                  resolve(newgraphics);
+                }
+              });
+            }
+          })
+
+        })
+      };
+      function displayPanels(visible) {
+
+        // document.getElementById("rendererPanel").style.display = "block";
+        document.getElementById("filterPanel").style.display = "block";
+      }
+      //Filter
+      let sketchLayer = new GraphicsLayer();
+      let bufferLayer = new GraphicsLayer();
+      view.map.addMany([bufferLayer, sketchLayer]);
+      on(btnSelect, "click", () => {
+        if(btnSelect.innerHTML == "Selecteer Wegen") {
+          btnSelect.innerHTML = "Stop Selectie";
+          // sketchViewModel.create("polyline");
+          clearSelection();
+        } else {
+          btnSelect.innerHTML = "Selecteer Wegen";
+          stopSelection();
+        }
+      });
+      on(btnClear, "click", () => {
+        clearSelection();
+      });
+      // use SketchViewModel to draw polygons that are used as a filter
+      let sketchGeometry = null;
+      let filterGeometry = null;
+      const sketchViewModel = new SketchViewModel({
+        layer: sketchLayer,
+        view: view,
+
+        polylineSymbol: {
+          type: "simple-line",
+          color: [155, 155, 155, 0.2],
+          width: 3
+        },
+
+        polygonSymbol: {
+          type: "simple-fill", // autocasts as new SimpleFillSymbol()
+          color: [155, 155, 155, 0.4],
+          outline: {
+            // autocasts as new SimpleLineSymbol()
+            color: [255, 255, 255],
+            width: 2
+          }
+        },
+        defaultCreateOptions: { hasZ: false }
+      });
+
+      sketchViewModel.on(["create"], function (event) {
+        // update the filter every time the user finishes drawing the filtergeometry
+        // console.log("sketchViewModel, create:", event.state)
+        // if (event.state == "complete") {
+
+        // }
+        if (event.state == "active" || event.state == "complete") {
+          sketchGeometry = event.graphic.geometry;
+          updateFilter(event.state);
+        }
+      });
+
+      sketchViewModel.on(["update"], function (event) {
+        const eventInfo = event.toolEventInfo;
+        // update the filter every time the user moves the filtergeometry
+        if (eventInfo && eventInfo.type.includes("move")) {
+          if (eventInfo.type === "move-stop") {
+            sketchGeometry = event.graphics[0].geometry;
+            updateFilter();
+          }
+        }
+        // update the filter every time the user changes the vertices of the filtergeometry
+        if (eventInfo && eventInfo.type.includes("reshape")) {
+          if (eventInfo.type === "reshape-stop") {
+            sketchGeometry = event.graphics[0].geometry;
+            updateFilter();
+          }
+        }
+      });
+
+      function updateFilter(eventState) {
+        var bufferGeometry = geometryEngine.geodesicBuffer(
+          sketchGeometry,
+          250,
+          "meters"
+        );
+        if (bufferLayer.graphics.length === 0) {
+          bufferLayer.add(
+            new Graphic({
+              geometry: bufferGeometry,
+              symbol: sketchViewModel.polygonSymbol
+            })
+          );
+        } else {
+          bufferLayer.graphics.getItemAt(0).geometry = bufferGeometry;
+        }
+        filterGeometry = bufferGeometry;
+        //updateFilterGeometry();
+        // console.log("Start updating filter");
+        featureFilter = {
+          // autocasts to FeatureFilter
+          geometry: filterGeometry,
+          spatialRelationship: "contains"
+        };
+
+        if (flView) {
+          flView.filter = featureFilter;
+          if(eventState == "complete") {
+            btnSelect.innerHTML = "Selecteer Wegen";
+            const queryParams = flView.filter.createQuery();
+            // queryParams.geometry = filterGeometry;
+            // queryParams.outFields = ["*"];
+            // console.log("featureFilter Query: ", queryParams);
+            // console.log("flView: ", flView);
+            flView.queryFeatures(queryParams)
+              .then(function(results){
+                // add the features to the related table
+                // if(eventState == "complete") {
+                  console.log("results.features: ", results.features);
+                  // panelFeatureCount.innerHTML = results.features.length + " selected";
+                  selectedFeatures = results.features;
+
+                  showRateRadios();
+
+                  // let rating = 0;
+
+
+                  // if(selectedRating > 0) {
+                  //   btnRate.disabled = false;
+                  // }
+
+                  
+                // }
+              });
+          }
+        }
+      }
+
+      function stopSelection() {
+        sketchViewModel.cancel();
+        sketchGeometry = null;
+        sketchLayer.removeAll();
+        bufferLayer.removeAll();
+        // btnSelect.innerHTML == "Selecteer Wegen"
+        if (flView) {
+          flView.filter = initialFilter;
+        }
+        resetRatingStars();
+        hideRateRadios();
+        hideRateButton();
+      }
+
+      function clearSelection() {
+        stopSelection();
+        sketchViewModel.create("polyline");
+      }
+
+      function setSelectedRating() {
+        selectedRating = starhalf.checked ? 0.5 : selectedRating;
+        selectedRating = star1.checked ? 1 : selectedRating;
+        selectedRating = star1half.checked ? 1.5 : selectedRating;
+        selectedRating = star2.checked ? 2 : selectedRating;
+        selectedRating = star2half.checked ? 2.5 : selectedRating;
+        selectedRating = star3.checked ? 3 : selectedRating;
+        selectedRating = star3half.checked ? 3.5 : selectedRating;
+        selectedRating = star4.checked ? 4 : selectedRating;
+        selectedRating = star4half.checked ? 4.5 : selectedRating;
+        selectedRating = star5.checked ? 5 : selectedRating;
+
+        console.log("Selected selectedRating: ", selectedRating);
+
+
+        showRateButton();
+
+      }
+
+      function resetRatingStars() {
+        starhalf.checked = false;
+        star1.checked = false;
+        star1half.checked = false;
+        star2.checked = false;
+        star2half.checked = false;
+        star3.checked = false;
+        star3half.checked = false;
+        star4.checked = false;
+        star4half.checked = false;
+        star5.checked = false;
+        selectedRating = 0;
+      }
+
+      function showRateRadios() {
+        panelRateRadios.style.display = "block";
+      }
+
+      function hideRateRadios() {
+        panelRateRadios.style.display = "none";
+      }
+
+      function showRateButton() {
+        panelRateButton.style.display = "block";
+      }
+
+      function hideRateButton() {
+        panelRateButton.style.display = "none";
+      }
+
+    });
+  </script>
+</head>
+
+<body>
+  <div id="viewDiv"></div>
+  <div id="panel" class="panel modifier-class">
+    <!-- <button class="btn modifier-class" id="btnGo"> Go </button> -->
+    <div class="loader padding-leader-3 padding-trailer-3" id="loader">
+      <div class="loader-bars"></div>
+      <div class="loader-text" id="loaderText">De kaart wordt geladen...</div>
+    </div>
+    <!-- <div id="rendererPanel">
+      <select id="fieldSelect">
+        <option value="">Choose a field</option>
+      </select>
+      <select id="rampSelect">
+        <option value="">Choose a color ramp</option>
+      </select>
+    </div> -->
+    <div id="filterPanel">
+      <button class="btn modifier-class" id="btnSelect">Selecteer Wegen</button>
+      <button class="btn modifier-class" id="btnClearSelect">Selectie Wissen</button>
+    </div>
+    <!-- <div id="panelFeatureCount"></div> -->
+    <div id="panelRateRadios">
+      <fieldset class="rating">
+        <input type="radio" id="star5" name="rating" value="5" /><label class = "full" for="star5" title="Awesome - 5 stars"></label>
+        <input type="radio" id="star4half" name="rating" value="4 and a half" /><label class="half" for="star4half" title="Pretty good - 4.5 stars"></label>
+        <input type="radio" id="star4" name="rating" value="4" /><label class = "full" for="star4" title="Pretty good - 4 stars"></label>
+        <input type="radio" id="star3half" name="rating" value="3 and a half" /><label class="half" for="star3half" title="Meh - 3.5 stars"></label>
+        <input type="radio" id="star3" name="rating" value="3" /><label class = "full" for="star3" title="Meh - 3 stars"></label>
+        <input type="radio" id="star2half" name="rating" value="2 and a half" /><label class="half" for="star2half" title="Kinda bad - 2.5 stars"></label>
+        <input type="radio" id="star2" name="rating" value="2" /><label class = "full" for="star2" title="Kinda bad - 2 stars"></label>
+        <input type="radio" id="star1half" name="rating" value="1 and a half" /><label class="half" for="star1half" title="Meh - 1.5 stars"></label>
+        <input type="radio" id="star1" name="rating" value="1" /><label class = "full" for="star1" title="Sucks big time - 1 star"></label>
+        <input type="radio" id="starhalf" name="rating" value="half" /><label class="half" for="starhalf" title="Sucks big time - 0.5 stars"></label>
+    </fieldset>
+    </div>
+    <div id="panelRateButton">
+      <button class="btn modifier-class" id="btnRate">Rate selected</button>
+    </div>
+    <div id="panelRateMessage"></div>
+    <!-- <div>
+      <label>
+        <input type="radio" name="test" value="small" checked>
+        <img src="http://placehold.it/40x60/0bf/fff&text=A">
+      </label>
+      
+      <label>
+        <input type="radio" name="test" value="big">
+        <img src="http://placehold.it/40x60/b0f/fff&text=B">
+      </label>
+    </div> -->
+    <div>
+      <img src="images/adventure_trans.png" name="selectBikeImages" id="Adventure" style="background:rgb(255, 255, 255)">
+      <img src="images/classic_trans.png" name="selectBikeImages" id="Classic" style="background:rgb(255, 255, 255)">
+    </div>
+  </div>
+</body>
+
+</html>
