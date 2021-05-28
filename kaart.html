@@ -21,16 +21,17 @@
 
     }
 
-    /* #rendererpanel {
-      display: none;
+    #panelSelectBike {
+      padding: 0px;
+      background: white;
     }
-
-    #rendererPanel select {
-      width: 215px;
-    } */
 
     #filterpanel {
       padding-top: 4px;
+      display: none;
+    }
+
+    #btnClearSelect {
       display: none;
     }
 
@@ -62,23 +63,6 @@
       background:rgb(255, 216, 0, 0.7);
     }
 
-    /* HIDE RADIO */
-    /* [type=radio] { 
-      position: absolute;
-      opacity: 0;
-      width: 0;
-      height: 0;
-    } */
-
-    /* IMAGE STYLES */
-    /* [type=radio] + img {
-      cursor: pointer;
-    } */
-
-    /* CHECKED STYLES */
-    /* [type=radio]:checked + img {
-      outline: 2px solid #f00;
-    } */
   </style>
   <!-- calcite web from: https://esri.github.io/calcite-web/ -->
   <link rel="stylesheet"
@@ -91,11 +75,13 @@
 
     require([
       "esri/WebMap", "esri/views/MapView", "esri/widgets/Expand", "esri/layers/FeatureLayer", "esri/Graphic", "esri/request", "esri/widgets/Legend",
-      "esri/layers/GraphicsLayer", "esri/widgets/Sketch/SketchViewModel", "esri/views/layers/support/FeatureFilter", "esri/geometry/geometryEngine", "esri/Graphic", "esri/tasks/support/Query", "esri/config",
+      "esri/layers/GraphicsLayer", "esri/widgets/Sketch/SketchViewModel", "esri/views/layers/support/FeatureFilter", "esri/geometry/geometryEngine", 
+      "esri/Graphic", "esri/tasks/support/Query", "esri/PopupTemplate","esri/popup/content/CustomContent", "esri/config",
       "dojo/on",
       "https://s3-us-west-1.amazonaws.com/patterns.esri.com/files/calcite-web/1.2.5/js/calcite-web.min.js"
     ], function (WebMap, MapView, Expand, FeatureLayer, Graphic, esriRequest, Legend,
-      GraphicsLayer, SketchViewModel, FeatureFilter, geometryEngine, Graphic, Query,  esriConfig,
+      GraphicsLayer, SketchViewModel, FeatureFilter, geometryEngine, 
+      Graphic, Query, PopupTemplate, CustomContent, esriConfig,
       on,
       calcite) {
       calcite.init();
@@ -108,12 +94,6 @@
       var selectedFeatures = [];
       var selectedRating = 0;
       var selectedBike = null;
-
-      
-
-      // var map = new Map({
-      //   basemap: "topo-vector"
-      // });
 
       esriConfig.apiKey = "AAPK0556caf3cf0041aaaf03aecec416fe83yMXkBaDZeu-9XZvlwwoMZvt1ZBXNdTyMVGRYYeR9ELjXt_3bK7-c-DkT89u2an9T";
 
@@ -201,6 +181,10 @@
       }
       
       view.ui.add(panelExpand, "top-right")
+      view.ui.add([{component: "panelSelectBike",
+        position: "top-left",
+        index: 1
+      }]);
 
       ratingFl = new FeatureLayer("https://services3.arcgis.com/4RP58XtUrPEDt7Tl/arcgis/rest/services/Ratings/FeatureServer/0");
 
@@ -221,7 +205,8 @@
           let att = {
             weg_id: "0",
             WVK_ID: feature.attributes.WVK_ID,
-            rating: selectedRating
+            rating: selectedRating,
+            motortype: selectedBike
           };
 
           let graphic = new Graphic({
@@ -246,9 +231,48 @@
         });
       });
 
+
+      // Create custom popup content to show average rating in stars
+      var customContent = new CustomContent({
+        outFields: ["*"],
+        creator: function (event) {
+          // Calculate avarage rating for selected road segment
+          var averageRating = event.graphic.attributes["rating_mean"]/5 * 100;
+          
+          // Set number of ratings
+          if (!event.graphic.attributes["join_count"]) {
+              var countString = "Er zijn nog geen beoordelingen";
+              var display = "none";
+          }
+          else {
+              var countString = "Op basis van " + event.graphic.attributes["join_count"] + " beoordeling(en)";
+              var display = "block";
+          }
+
+          // Construct html for custom content
+          var result = '<div style="display:' + display + ';background: ' + "url('images/stars.png') repeat-x;font-size: 0;height: 40px;line-height: 0;overflow: hidden;text-indent: -999em;width: 175px;margin: 0 auto;" + '"><span style="background:' + "url('images/stars.png') repeat-x;background-position: 0 100%;float: left;height: 40px;display:block;width:" + averageRating + '%"><span style="text-indent: -999em;"></span></span</div><br /><div style="text-align: center;"><i>'+ countString +'</i></div>'
+          
+          return result;
+        }
+      });
+
       // on(btnGo, "click", () => {
       view.when(() => {
         console.log("Let's go");
+
+        var layer = map.layers.find(function(element){return element["title"]=="Beoordeelde wegen"});
+        
+        // Set custom popup template on layer
+        layer.popupTemplate = new PopupTemplate({
+          outFields: ["*"],
+          content: [customContent]
+        });
+
+        var esriUITopLeft = document.getElementsByClassName("esri-ui-top-left")[0];
+        esriUITopLeft.style.flexFlow = "row";
+        var zoomWidget = document.getElementsByClassName("esri-zoom")[0];
+        zoomWidget.style.marginRight = "10px";
+
         //monumenten
         // var url = "https://services9.arcgis.com/kfCU77AsgNn9o1Ff/arcgis/rest/services/Test_motorwegen/FeatureServer/0";
         // var url = "https://services.arcgis.com/nSZVuSZjHpEZZbRo/arcgis/rest/services/NWB_Wegvakken/FeatureServer/0";
@@ -497,11 +521,13 @@
         resetRatingStars();
         hideRateRadios();
         hideRateButton();
+        hideClearButton();
       }
 
       function clearSelection() {
         stopSelection();
         sketchViewModel.create("polyline");
+        showClearButton();
       }
 
       function setSelectedRating() {
@@ -553,6 +579,14 @@
         panelRateButton.style.display = "none";
       }
 
+      function showClearButton() {
+        btnClear.style.display = "inline-block";
+      }
+
+      function hideClearButton() {
+        btnClear.style.display = "none";
+      }
+
     });
   </script>
 </head>
@@ -599,7 +633,7 @@
 
   </div>
 
-  <div id="panelSelectBike" style="position: absolute; top: 15px; left: 60px; width: 600px; height: 100px; background: white;">
+  <div id="panelSelectBike" class="panel modifier-class">
     <img src="images/adventure_trans.png" name="bikeImages" id="Adventure" class="bikeImages">
     <img src="images/classic_trans.png" name="bikeImages" id="Classic" class="bikeImages">
     <img src="images/cruiser_trans.png" name="bikeImages" id="Cruiser" class="bikeImages">
