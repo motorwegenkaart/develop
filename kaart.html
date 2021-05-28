@@ -42,6 +42,26 @@
       display: none;
     }
 
+    .bikeImages {
+      width: 100px; 
+      height: 100px; 
+      background:rgb(255, 255, 255); 
+      float: left;
+    }
+
+    .bikeImages:hover {
+      background:rgb(255, 216, 0, 0.3);
+      cursor: pointer;
+    }
+
+    .bikeImagesSelected {
+      background:rgb(255, 216, 0, 0.5);
+    }
+
+    .bikeImagesSelected:hover {
+      background:rgb(255, 216, 0, 0.7);
+    }
+
     /* HIDE RADIO */
     /* [type=radio] { 
       position: absolute;
@@ -114,7 +134,6 @@
 
       });
 
-
       view.ui.add(legend, "bottom-right");
 
       var panel = document.getElementById("panel");
@@ -128,6 +147,7 @@
       var panelRateRadios = document.getElementById("panelRateRadios");
       var panelRateButton = document.getElementById("panelRateButton");
       var panelRateMessage = document.getElementById("panelRateMessage");
+      var panelSelectBike = document.getElementById("panelSelectBike");
 
       var starhalf = document.getElementById("starhalf");
       var star1 = document.getElementById("star1");
@@ -151,32 +171,31 @@
       on(star4half, "change", (value) => {setSelectedRating();});
       on(star5, "change", (value) => {setSelectedRating();});
 
-      var selectBikeImages = document.getElementsByName("selectBikeImages");
+      var bikeImages = document.getElementsByName("bikeImages");
 
+      // TODO - create these in a loop
       var imgAdventure = document.getElementById("Adventure");
       var imgClassic = document.getElementById("Classic");
-      on(imgAdventure, "click", (value) => {
-        setSelectedBike(imgAdventure);
-      });
-      on(imgClassic, "click", (value) => {
-        setSelectedBike(imgClassic);
-      });
+      var imgCruiser = document.getElementById("Cruiser");
+      var imgNaked = document.getElementById("Naked");
+      var imgSport = document.getElementById("Sport");
+      var imgTouring = document.getElementById("Touring");
+      on(imgAdventure, "click", (value) => {setSelectedBike(imgAdventure);});
+      on(imgClassic, "click", (value) => {setSelectedBike(imgClassic);});
+      on(imgCruiser, "click", (value) => {setSelectedBike(imgCruiser);});
+      on(imgNaked, "click", (value) => {setSelectedBike(imgNaked);});
+      on(imgSport, "click", (value) => {setSelectedBike(imgSport);});
+      on(imgTouring, "click", (value) => {setSelectedBike(imgTouring);});
 
       function setSelectedBike(imgObj) {
-        // var select = true;
-        // if(imgObj.id == selectedBike) {
-        //   select = false
-        // }
-
-        for (var i = 0; i < selectBikeImages.length; i++) {
-          console.log(selectBikeImages[i].src);
-          selectBikeImages[i].style = "background:rgb(255,255,255)";
+        for (var i = 0; i < bikeImages.length; i++) {
+          bikeImages[i].className = "bikeImages";
         }
 
         if(imgObj.id == selectedBike) {
           selectedBike = null;
         } else {
-          imgObj.style = "background:rgb(255,216,0,0.5)";
+          imgObj.className = "bikeImages bikeImagesSelected";
           selectedBike = imgObj.id;
         }
       }
@@ -293,94 +312,6 @@
 
       });
 
-      // on(fieldSelect, "change", (evt) => {
-      //   console.log("fieldSelect:change", fieldSelect, evt);
-      //   fieldName = fieldSelect.selectedOptions[0].value;
-      //   console.log("fieldName: ", fieldName);
-      //   console.log("lview: ", flView);
-
-
-      //   var query = serviceFl.createQuery();
-      //   query.groupByFieldsForStatistics = fieldName;
-      //   query.orderByFields = ["field_count DESC"];
-      //   query.outStatistics = [{
-      //     onStatisticField: fieldName,
-      //     outStatisticFieldName: "field_count",
-      //     statisticType: "count"
-      //   }];
-      //   serviceFl.queryFeatures(query).then(function (response) {
-      //     console.log("response", response)
-      //     var nrofFieldValues = response.features.length;
-      //     if (nrofFieldValues > 10) {
-      //       nrofFieldValues = 10;
-      //     }
-      //     if (nrofFieldValues > 0) {
-      //       top10FieldValues = [];
-      //       for (var i = 0; i < nrofFieldValues; i++) {
-      //         var fieldValue = response.features[i].attributes[fieldName];
-      //         console.log("Adding: ", fieldValue);
-
-      //         top10FieldValues.push(fieldValue);
-
-      //       }
-      //       updateRenderer();
-      //     }
-      //   });
-
-
-      // });
-      // on(rampSelect, "change", (evt) => {
-      //   updateRenderer();
-      // });
-
-      // function updateRenderer() {
-      //   console.log("value", rampSelect.selectedOptions[0].value);
-      //   if (rampSelect.selectedOptions[0].value != "" && fieldSelect.selectedOptions[0].value != "") {
-      //     var uniqueValues = []
-      //     var colors = rampSelect.selectedOptions[0].value.split(",");
-      //     for (var i = 0; i < top10FieldValues.length; i++) {
-      //       var fieldValue = top10FieldValues[i];
-      //       var colorHex = colors[i];
-      //       uniqueValues.push({
-      //         value: fieldValue,
-      //         symbol: {
-      //           type: "simple-marker",
-      //           outline: { width: 1 },
-      //           color: colorHex
-      //         }
-      //       });
-      //     }
-
-      //     var renderer = {
-      //       type: "unique-value",  // autocasts as new UniqueValueRenderer()
-      //       field: fieldName,
-      //       defaultSymbol: {
-      //         type: "simple-marker",
-      //         outline: { width: 1 },
-      //         color: "#ECECEC"
-      //       },  // autocasts as new SimpleFillSymbol()
-      //       uniqueValueInfos: uniqueValues,
-
-      //     };
-      //     fLayer.renderer = renderer;
-      //   }
-      // }
-
-      // function setColorRamps() {
-      //   esriRequest("colorramps.json").then((response) => {
-      //     console.log("color ramps:", response);
-
-
-      //     response.data.forEach((ramp) => {
-      //       console.log(ramp);
-      //       var opt = document.createElement('option');
-      //       opt.value = ramp.colors;
-      //       opt.innerHTML = ramp.name;
-      //       rampSelect.appendChild(opt);
-      //     });
-      //   });
-
-      // }
       function loaderStatus(status, msg) {
         var loader = document.getElementById("loader");
         document.getElementById("loaderText").innerHTML = msg;
@@ -665,21 +596,16 @@
       <button class="btn modifier-class" id="btnRate">Rate selected</button>
     </div>
     <div id="panelRateMessage"></div>
-    <!-- <div>
-      <label>
-        <input type="radio" name="test" value="small" checked>
-        <img src="http://placehold.it/40x60/0bf/fff&text=A">
-      </label>
-      
-      <label>
-        <input type="radio" name="test" value="big">
-        <img src="http://placehold.it/40x60/b0f/fff&text=B">
-      </label>
-    </div> -->
-    <div>
-      <img src="images/adventure_trans.png" name="selectBikeImages" id="Adventure" style="background:rgb(255, 255, 255)">
-      <img src="images/classic_trans.png" name="selectBikeImages" id="Classic" style="background:rgb(255, 255, 255)">
-    </div>
+
+  </div>
+
+  <div id="panelSelectBike" style="position: absolute; top: 15px; left: 60px; width: 600px; height: 100px; background: white;">
+    <img src="images/adventure_trans.png" name="bikeImages" id="Adventure" class="bikeImages">
+    <img src="images/classic_trans.png" name="bikeImages" id="Classic" class="bikeImages">
+    <img src="images/cruiser_trans.png" name="bikeImages" id="Cruiser" class="bikeImages">
+    <img src="images/naked_trans.png" name="bikeImages" id="Naked" class="bikeImages">
+    <img src="images/sport_trans.png" name="bikeImages" id="Sport" class="bikeImages">
+    <img src="images/touring_trans.png" name="bikeImages" id="Touring" class="bikeImages">
   </div>
 </body>
 
