@@ -24,6 +24,8 @@
     #panelSelectBike {
       padding: 0px;
       background: white;
+      width: 307px;
+      height: 100px;
     }
 
     #filterpanel {
@@ -47,7 +49,7 @@
       width: 100px; 
       height: 100px; 
       background:rgb(255, 255, 255); 
-      float: left;
+      /* float: top; */
     }
 
     .bikeImages:hover {
@@ -63,6 +65,19 @@
       background:rgb(255, 216, 0, 0.7);
     }
 
+    @media (max-width: 800px) {
+      /* CSS that should be displayed if width is equal to or less than 800px goes here */
+      .bikeImages {
+          width: 50px; 
+          height: 50px;
+          float: none;
+      }
+      #panelSelectBike {
+        width: 50px;
+        height: 150px;
+      }
+    }
+
   </style>
   <!-- calcite web from: https://esri.github.io/calcite-web/ -->
   <link rel="stylesheet"
@@ -74,12 +89,12 @@
   <script>
 
     require([
-      "esri/WebMap", "esri/views/MapView", "esri/widgets/Expand", "esri/layers/FeatureLayer", "esri/Graphic", "esri/request", "esri/widgets/Legend",
+      "esri/WebMap", "esri/views/MapView", "esri/widgets/Expand", "esri/layers/FeatureLayer", "esri/layers/Layer", "esri/Graphic", "esri/request", "esri/widgets/Legend",
       "esri/layers/GraphicsLayer", "esri/widgets/Sketch/SketchViewModel", "esri/views/layers/support/FeatureFilter", "esri/geometry/geometryEngine", 
       "esri/Graphic", "esri/tasks/support/Query", "esri/PopupTemplate","esri/popup/content/CustomContent", "esri/config",
       "dojo/on",
       "https://s3-us-west-1.amazonaws.com/patterns.esri.com/files/calcite-web/1.2.5/js/calcite-web.min.js"
-    ], function (WebMap, MapView, Expand, FeatureLayer, Graphic, esriRequest, Legend,
+    ], function (WebMap, MapView, Expand, FeatureLayer, Layer, Graphic, esriRequest, Legend,
       GraphicsLayer, SketchViewModel, FeatureFilter, geometryEngine, 
       Graphic, Query, PopupTemplate, CustomContent, esriConfig,
       on,
@@ -90,6 +105,7 @@
       var fLayer = null;
       var flView = null;
       var serviceFl = null;
+      var ratingFl = null;
       var initialFilter = {where: "1=0"};
       var selectedFeatures = [];
       var selectedRating = 0;
@@ -99,7 +115,7 @@
 
       const map = new WebMap({
         portalItem: {
-          id: "713e07b6b38a4de290e4fb17edea8681"
+          id: "04fa672bcdb348f9976c1394cd167e55"
         }
       });
       
@@ -114,10 +130,11 @@
 
       });
 
-      view.ui.add(legend, "bottom-right");
+      var legendExpand = new Expand({ content: legend, view: view, expanded: false });
+      view.ui.add(legendExpand, "bottom-right");
 
-      var panel = document.getElementById("panel");
-      var panelExpand = new Expand({ content: panel, view: view, expanded: true });
+      var panelRateRoads = document.getElementById("panelRateRoads");
+      var panelExpand = new Expand({ content: panelRateRoads, view: view, expanded: true });
       // var fieldSelect = document.getElementById("fieldSelect");
       var rampSelect = document.getElementById("rampSelect");
       var btnSelect = document.getElementById("btnSelect");
@@ -154,18 +171,12 @@
       var bikeImages = document.getElementsByName("bikeImages");
 
       // TODO - create these in a loop
-      var imgAdventure = document.getElementById("Adventure");
-      var imgClassic = document.getElementById("Classic");
-      var imgCruiser = document.getElementById("Cruiser");
+      var imgTour = document.getElementById("Tour");
       var imgNaked = document.getElementById("Naked");
       var imgSport = document.getElementById("Sport");
-      var imgTouring = document.getElementById("Touring");
-      on(imgAdventure, "click", (value) => {setSelectedBike(imgAdventure);});
-      on(imgClassic, "click", (value) => {setSelectedBike(imgClassic);});
-      on(imgCruiser, "click", (value) => {setSelectedBike(imgCruiser);});
+      on(imgTour, "click", (value) => {setSelectedBike(imgTour);});
       on(imgNaked, "click", (value) => {setSelectedBike(imgNaked);});
       on(imgSport, "click", (value) => {setSelectedBike(imgSport);});
-      on(imgTouring, "click", (value) => {setSelectedBike(imgTouring);});
 
       function setSelectedBike(imgObj) {
         for (var i = 0; i < bikeImages.length; i++) {
@@ -180,13 +191,25 @@
         }
       }
       
-      view.ui.add(panelExpand, "top-right")
+      // view.ui.add(panelExpand, "top-right")
+      view.ui.add([{component: "panelRateRoads",
+        position: "top-right",
+        index: 1
+      }]);
+
       view.ui.add([{component: "panelSelectBike",
         position: "top-left",
         index: 1
       }]);
 
-      ratingFl = new FeatureLayer("https://services3.arcgis.com/4RP58XtUrPEDt7Tl/arcgis/rest/services/Ratings/FeatureServer/0");
+      Layer.fromPortalItem({
+          portalItem: {
+            id: "ebb3a489c6de467a9fb39ac16ff4b948"
+          }
+        }).then(function(layer) {
+          // ratingFl = layer;
+          ratingFl = new FeatureLayer("https://services3.arcgis.com/4RP58XtUrPEDt7Tl/arcgis/rest/services/Ratings/FeatureServer/0");
+        });
 
 
       //Data and Visualization
@@ -203,7 +226,6 @@
           // console.log(feature.attributes.OBJECTID);
           
           let att = {
-            weg_id: "0",
             WVK_ID: feature.attributes.WVK_ID,
             rating: selectedRating,
             motortype: selectedBike
@@ -215,6 +237,9 @@
 
           addGraphics.push(graphic);
         });
+
+        console.log("Adding data to FS: ", ratingFl);
+        console.log("addGraphics: ", addGraphics);
 
         let edits = {
           addFeatures: addGraphics
@@ -268,10 +293,12 @@
           content: [customContent]
         });
 
-        var esriUITopLeft = document.getElementsByClassName("esri-ui-top-left")[0];
-        esriUITopLeft.style.flexFlow = "row";
+        // var esriUITopLeft = document.getElementsByClassName("esri-ui-top-left")[0];
+        // esriUITopLeft.style.flexFlow = "row";
         var zoomWidget = document.getElementsByClassName("esri-zoom")[0];
-        zoomWidget.style.marginRight = "10px";
+        // zoomWidget.style.marginRight = "10px";
+        view.ui.add(zoomWidget, "bottom-left");
+
 
         //monumenten
         // var url = "https://services9.arcgis.com/kfCU77AsgNn9o1Ff/arcgis/rest/services/Test_motorwegen/FeatureServer/0";
@@ -281,56 +308,64 @@
         var url = "https://services3.arcgis.com/4RP58XtUrPEDt7Tl/arcgis/rest/services/Wegen/FeatureServer/0"; // Friesland
         loaderStatus(true, "De kaart wordt geladen...");
 
-        serviceFl = new FeatureLayer(url);
+        // Creates a layer from a Portal layer item id
+        Layer.fromPortalItem({
+          portalItem: {
+            id: "9984f13b95824a1e91eeea8d91e56e5f"
+          }
+        }).then(function(layer) {
+          serviceFl = layer;
 
-        console.log("map", map);
-        console.log("view", view);
-        getAllDataFromFeatureLayer(serviceFl, view.spatialReference.wkid).then((result) => {
+          console.log("map", map);
+          console.log("view", view);
+          getAllDataFromFeatureLayer(serviceFl, view.spatialReference.wkid).then((result) => {
 
-          console.log("got result", result);
-          // loaderStatus(true, "Received features: creating layer");
+            console.log("got result", result);
+            // loaderStatus(true, "Received features: creating layer");
 
-          console.log("fl", serviceFl);
-          fLayer = new FeatureLayer({
+            console.log("fl", serviceFl);
+            fLayer = new FeatureLayer({
 
-            // create an instance of esri/layers/support/Field for each field object
-            fields: serviceFl.fields,
-            outFields: ["*"],
-            objectIdField: serviceFl.objectIdField, // inferred from fields array if not specified
-            geometryType: serviceFl.geometryType, // geometryType and spatialReference are inferred from the first feature
-            //   in the source array if they are not specified.
-            spatialReference: view.spatialReference,
-            source: [result[0]],  //  an array of graphics with geometry and attributes
-            // popupTemplate and symbol are not required in each feature
-            // since those are handled with the popupTemplate and
-            // renderer properties of the layer
-            popupTemplate: serviceFl.popupTemplate,
-            legendEnabled: false,
-            // a default simple renderer will be applied if not set.
-            renderer: serviceFl.renderer  // UniqueValueRenderer based on `type` attribute
+              // create an instance of esri/layers/support/Field for each field object
+              fields: serviceFl.fields,
+              outFields: ["*"],
+              objectIdField: serviceFl.objectIdField, // inferred from fields array if not specified
+              geometryType: serviceFl.geometryType, // geometryType and spatialReference are inferred from the first feature
+              //   in the source array if they are not specified.
+              spatialReference: view.spatialReference,
+              source: [result[0]],  //  an array of graphics with geometry and attributes
+              // popupTemplate and symbol are not required in each feature
+              // since those are handled with the popupTemplate and
+              // renderer properties of the layer
+              popupTemplate: serviceFl.popupTemplate,
+              legendEnabled: false,
+              // a default simple renderer will be applied if not set.
+              renderer: serviceFl.renderer  // UniqueValueRenderer based on `type` attribute
+            });
+            map.add(fLayer);
+
+            view.whenLayerView(fLayer).then(function (layerView) {
+              flView = layerView;
+              flView.filter = initialFilter;
+              
+            });
+
+            // loaderStatus(true, "Adding features to layer");
+            fLayer.applyEdits({ addFeatures: result }).then(() => {
+              loaderStatus(false, "")
+              displayPanels(true);
+            });
+            serviceFl.fields.forEach((fld) => {
+              console.log(fld);
+              var opt = document.createElement('option');
+              opt.value = fld.name;
+              opt.innerHTML = `${fld.name} (${fld.type})`;
+              // fieldSelect.appendChild(opt);
+
+            });
+
+
           });
-          map.add(fLayer);
-
-          view.whenLayerView(fLayer).then(function (layerView) {
-            flView = layerView;
-            flView.filter = initialFilter;
-            
-          });
-
-          // loaderStatus(true, "Adding features to layer");
-          fLayer.applyEdits({ addFeatures: result }).then(() => {
-            loaderStatus(false, "")
-            displayPanels(true);
-          });
-          serviceFl.fields.forEach((fld) => {
-            console.log(fld);
-            var opt = document.createElement('option');
-            opt.value = fld.name;
-            opt.innerHTML = `${fld.name} (${fld.type})`;
-            // fieldSelect.appendChild(opt);
-
-          });
-
 
         });
 
@@ -522,6 +557,7 @@
         hideRateRadios();
         hideRateButton();
         hideClearButton();
+        panelRateMessage.innerHTML = "";
       }
 
       function clearSelection() {
@@ -593,7 +629,7 @@
 
 <body>
   <div id="viewDiv"></div>
-  <div id="panel" class="panel modifier-class">
+  <div id="panelRateRoads" class="panel modifier-class">
     <!-- <button class="btn modifier-class" id="btnGo"> Go </button> -->
     <div class="loader padding-leader-3 padding-trailer-3" id="loader">
       <div class="loader-bars"></div>
@@ -634,12 +670,9 @@
   </div>
 
   <div id="panelSelectBike" class="panel modifier-class">
-    <img src="images/adventure_trans.png" name="bikeImages" id="Adventure" class="bikeImages">
-    <img src="images/classic_trans.png" name="bikeImages" id="Classic" class="bikeImages">
-    <img src="images/cruiser_trans.png" name="bikeImages" id="Cruiser" class="bikeImages">
-    <img src="images/naked_trans.png" name="bikeImages" id="Naked" class="bikeImages">
-    <img src="images/sport_trans.png" name="bikeImages" id="Sport" class="bikeImages">
-    <img src="images/touring_trans.png" name="bikeImages" id="Touring" class="bikeImages">
+    <img src="images/tour.png" name="bikeImages" id="Tour" class="bikeImages">
+    <img src="images/naked.png" name="bikeImages" id="Naked" class="bikeImages">
+    <img src="images/sport.png" name="bikeImages" id="Sport" class="bikeImages">
   </div>
 </body>
 
