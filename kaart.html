@@ -109,7 +109,7 @@
       var initialFilter = {where: "1=0"};
       var selectedFeatures = [];
       var selectedRating = 0;
-      var selectedBike = null;
+      var selectedBike = "All";
 
       esriConfig.apiKey = "AAPK0556caf3cf0041aaaf03aecec416fe83yMXkBaDZeu-9XZvlwwoMZvt1ZBXNdTyMVGRYYeR9ELjXt_3bK7-c-DkT89u2an9T";
 
@@ -178,17 +178,26 @@
       on(imgNaked, "click", (value) => {setSelectedBike(imgNaked);});
       on(imgSport, "click", (value) => {setSelectedBike(imgSport);});
 
+      // Create custom content for each bike type popup
+      var customContentDict = {};
+      customContentDict["All"] = createCustomContent("All");
+      customContentDict["Tour"] = createCustomContent("Tour");
+      customContentDict["Naked"] = createCustomContent("Naked");
+      customContentDict["Sport"] = createCustomContent("Sport");
+
       function setSelectedBike(imgObj) {
         for (var i = 0; i < bikeImages.length; i++) {
           bikeImages[i].className = "bikeImages";
         }
 
         if(imgObj.id == selectedBike) {
-          selectedBike = null;
+          selectedBike = "All";
         } else {
           imgObj.className = "bikeImages bikeImagesSelected";
           selectedBike = imgObj.id;
         }
+
+        setPopupTemplate();
       }
       
       // view.ui.add(panelExpand, "top-right")
@@ -202,15 +211,15 @@
         index: 1
       }]);
 
-      Layer.fromPortalItem({
-          portalItem: {
-            id: "ebb3a489c6de467a9fb39ac16ff4b948"
-          }
-        }).then(function(layer) {
-          // ratingFl = layer;
-          ratingFl = new FeatureLayer("https://services3.arcgis.com/4RP58XtUrPEDt7Tl/arcgis/rest/services/Ratings/FeatureServer/0");
-        });
-
+      // Layer.fromPortalItem({
+      //     portalItem: {
+      //       id: "ebb3a489c6de467a9fb39ac16ff4b948"
+      //     }
+      //   }).then(function(layer) {
+      //     // ratingFl = layer;
+      //   });
+        
+      ratingFl = new FeatureLayer("https://services3.arcgis.com/4RP58XtUrPEDt7Tl/arcgis/rest/services/Ratings_wegen/FeatureServer");
 
       //Data and Visualization
       // setColorRamps();
@@ -224,11 +233,15 @@
           // let rating = Math.round((Math.random() * 5) * 2) / 2;
           // console.log(rating);
           // console.log(feature.attributes.OBJECTID);
+          var bikeType = selectedBike;
+          if (selectedBike == "All") {
+            bikeType = null;
+          }
           
           let att = {
             WVK_ID: feature.attributes.WVK_ID,
             rating: selectedRating,
-            motortype: selectedBike
+            motortype: bikeType
           };
 
           let graphic = new Graphic({
@@ -257,41 +270,12 @@
       });
 
 
-      // Create custom popup content to show average rating in stars
-      var customContent = new CustomContent({
-        outFields: ["*"],
-        creator: function (event) {
-          // Calculate avarage rating for selected road segment
-          var averageRating = event.graphic.attributes["rating_mean"]/5 * 100;
-          
-          // Set number of ratings
-          if (!event.graphic.attributes["join_count"]) {
-              var countString = "Er zijn nog geen beoordelingen";
-              var display = "none";
-          }
-          else {
-              var countString = "Op basis van " + event.graphic.attributes["join_count"] + " beoordeling(en)";
-              var display = "block";
-          }
-
-          // Construct html for custom content
-          var result = '<div style="display:' + display + ';background: ' + "url('images/stars.png') repeat-x;font-size: 0;height: 40px;line-height: 0;overflow: hidden;text-indent: -999em;width: 175px;margin: 0 auto;" + '"><span style="background:' + "url('images/stars.png') repeat-x;background-position: 0 100%;float: left;height: 40px;display:block;width:" + averageRating + '%"><span style="text-indent: -999em;"></span></span</div><br /><div style="text-align: center;"><i>'+ countString +'</i></div>'
-          
-          return result;
-        }
-      });
 
       // on(btnGo, "click", () => {
       view.when(() => {
         console.log("Let's go");
-
-        var layer = map.layers.find(function(element){return element["title"]=="Beoordeelde wegen"});
         
-        // Set custom popup template on layer
-        layer.popupTemplate = new PopupTemplate({
-          outFields: ["*"],
-          content: [customContent]
-        });
+        setPopupTemplate();
 
         // var esriUITopLeft = document.getElementsByClassName("esri-ui-top-left")[0];
         // esriUITopLeft.style.flexFlow = "row";
@@ -371,6 +355,59 @@
 
       });
 
+      function createCustomContent(bikeType) {
+        // TODO: make field names variables
+        // Create custom popup content to show average rating in stars
+        var customContent = new CustomContent({
+          outFields: ["*"],
+          creator: function (event) {
+            // Calculate avarage rating for selected road segment
+            var averageRating = event.graphic.attributes["rating_mean_" + bikeType]/5 * 100;
+            
+            // Set number of ratings
+            if (!event.graphic.attributes["join_count_" + bikeType]) {
+                var countString = "Er zijn nog geen beoordelingen";
+                var display = "none";
+            }
+            else {
+                var countString = "Op basis van " + event.graphic.attributes["join_count_" + bikeType] + " beoordeling(en)";
+                var display = "block";
+            }
+
+            // Construct html for custom content
+            var result = '<div style="display:' + display + ';background: ' + "url('images/stars.png') repeat-x;font-size: 0;height: 40px;line-height: 0;overflow: hidden;text-indent: -999em;width: 175px;margin: 0 auto;" + '"><span style="background:' + "url('images/stars.png') repeat-x;background-position: 0 100%;float: left;height: 40px;display:block;width:" + averageRating + '%"><span style="text-indent: -999em;"></span></span</div><br /><div style="text-align: center;"><i>'+ countString +'</i></div>'
+            
+            return result;
+          }
+        });
+        return customContent;
+      }
+
+      function setPopupTemplate() {
+        // Set custom popup template on layer
+        var layer = map.layers.find(function(element){return element["title"]=="Beoordeelde wegen"});
+
+        // map.remove(layer);
+
+        // var renderer = layer.renderer;
+        console.log("Renderer field: ", layer.renderer.field);
+        layer.renderer.field = "rating_mean_" + selectedBike;
+        // layer.renderer.visualVariables[0].field = "rating_mean_" + selectedBike;
+        console.log("New renderer field: ", selectedBike, layer.renderer);
+        // layer.renderer = renderer;
+        // console.log("New renderer on layer: ", layer.renderer);
+
+        // map.add(layer);
+
+
+        
+
+        layer.popupTemplate = new PopupTemplate({
+          outFields: ["*"],
+          content: [customContentDict[selectedBike]]
+        });
+      }
+
       function loaderStatus(status, msg) {
         var loader = document.getElementById("loader");
         document.getElementById("loaderText").innerHTML = msg;
@@ -383,6 +420,7 @@
         }
 
       }
+
       function getAllDataFromFeatureLayer(fLayer, outSrWkid) {
         return new Promise(resolve => {
           // First, get the count of all features...
@@ -670,7 +708,7 @@
   </div>
 
   <div id="panelSelectBike" class="panel modifier-class">
-    <img src="images/tour.png" name="bikeImages" id="Tour" class="bikeImages">
+    <img src="images/adventure_tour.png" name="bikeImages" id="Tour" class="bikeImages">
     <img src="images/naked.png" name="bikeImages" id="Naked" class="bikeImages">
     <img src="images/sport.png" name="bikeImages" id="Sport" class="bikeImages">
   </div>
