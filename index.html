@@ -265,6 +265,7 @@
         ratingFl.applyEdits(edits).then(function(results) {
           console.log("edits added: ", results);
           panelRateMessage.innerHTML = "Thanks for your rating!";
+          setTimeout(refreshRatedRoadsLayer, 5000);
           stopSelection();
         });
       });
@@ -406,6 +407,12 @@
           outFields: ["*"],
           content: [customContentDict[selectedBike]]
         });
+      }
+
+      function refreshRatedRoadsLayer() {
+        console.log("refreshing rated roads layer...");
+        var layer = map.layers.find(function(element){return element["title"]=="Beoordeelde wegen"});
+        layer.refresh();
       }
 
       function loaderStatus(status, msg) {
@@ -701,7 +708,7 @@
     </fieldset>
     </div>
     <div id="panelRateButton">
-      <button class="btn modifier-class" id="btnRate">Rate selected</button>
+      <button class="btn modifier-class" id="btnRate">Beoordeel selectie</button>
     </div>
     <div id="panelRateMessage"></div>
 
