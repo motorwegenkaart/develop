@@ -29,6 +29,7 @@
     }
 
     #filterpanel {
+      width: 350px;
       padding-top: 4px;
       display: none;
     }
@@ -45,6 +46,9 @@
       display: none;
     }
 
+    .h6 {
+      word-wrap: break-word;
+    }
     .bikeImages {
       width: 100px; 
       height: 100px; 
@@ -138,6 +142,7 @@
       // var fieldSelect = document.getElementById("fieldSelect");
       var rampSelect = document.getElementById("rampSelect");
       var btnSelect = document.getElementById("btnSelect");
+      var infoMessage = document.getElementById("infoMessage");
       var btnClear = document.getElementById("btnClearSelect");
       var btnRate = document.getElementById("btnRate");
       // var panelFeatureCount = document.getElementById("panelFeatureCount");
@@ -264,7 +269,8 @@
 
         ratingFl.applyEdits(edits).then(function(results) {
           console.log("edits added: ", results);
-          panelRateMessage.innerHTML = "Thanks for your rating!";
+          infoMessage.innerHTML = "Bedankt voor je beoordeling! <br><br> Klik op 'Selecteer Wegen' om een nieuwe beoordeling te starten";
+          // panelRateMessage.innerHTML = "Thanks for your rating!";
           setTimeout(refreshRatedRoadsLayer, 5000);
           stopSelection();
         });
@@ -466,15 +472,19 @@
       on(btnSelect, "click", () => {
         if(btnSelect.innerHTML == "Selecteer Wegen") {
           btnSelect.innerHTML = "Stop Selectie";
+          infoMessage.innerHTML = "Klik op de kaart om een selectie te maken";
           // sketchViewModel.create("polyline");
           clearSelection();
         } else {
           btnSelect.innerHTML = "Selecteer Wegen";
+          infoMessage.innerHTML = "Klik op 'Selecteer Wegen' om wegen te beoordelen";
           stopSelection();
         }
       });
       on(btnClear, "click", () => {
         clearSelection();
+        btnSelect.innerHTML = "Stop Selectie";
+        infoMessage.innerHTML = "Klik op de kaart om een selectie te maken";
       });
       // use SketchViewModel to draw polygons that are used as a filter
       let sketchGeometry = null;
@@ -509,6 +519,7 @@
         // }
         if (event.state == "active" || event.state == "complete") {
           sketchGeometry = event.graphic.geometry;
+          infoMessage.innerHTML = "Dubbelklik om de selectie af te ronden";
           updateFilter(event.state);
         }
       });
@@ -560,6 +571,7 @@
           flView.filter = featureFilter;
           if(eventState == "complete") {
             btnSelect.innerHTML = "Selecteer Wegen";
+            infoMessage.innerHTML = "Bepaal een beoordeling voor de geselecteerde wegen";
             const queryParams = flView.filter.createQuery();
             // queryParams.geometry = filterGeometry;
             // queryParams.outFields = ["*"];
@@ -625,7 +637,7 @@
 
         console.log("Selected selectedRating: ", selectedRating);
 
-
+        infoMessage.innerHTML = "Klik op 'Beoordeel Selectie' om je beoordeling in te sturen";
         showRateButton();
 
       }
@@ -689,6 +701,8 @@
       </select>
     </div> -->
     <div id="filterPanel">
+      <h3>Geef een beoordeling</h3>
+      <h6 id="infoMessage">Klik op 'Selecteer Wegen' om wegen te beoordelen</h6>
       <button class="btn modifier-class" id="btnSelect">Selecteer Wegen</button>
       <button class="btn modifier-class" id="btnClearSelect">Selectie Wissen</button>
     </div>
@@ -708,7 +722,7 @@
     </fieldset>
     </div>
     <div id="panelRateButton">
-      <button class="btn modifier-class" id="btnRate">Beoordeel selectie</button>
+      <button class="btn modifier-class" id="btnRate">Beoordeel Selectie</button>
     </div>
     <div id="panelRateMessage"></div>
 
